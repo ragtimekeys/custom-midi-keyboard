@@ -7,8 +7,6 @@
 #define MAX_TIME_MS   50
 #define MAX_TIME_MS_N (MAX_TIME_MS - MIN_TIME_MS)
 
-
-//find out the pins using a multimeter, starting from the first key
 byte outputPins[] = {
   30,
   32,
@@ -26,8 +24,8 @@ byte inputPins[] = {
   43, 45
 };
 
-byte keys_state[TOTAL_NUM_KEYS];
-unsigned long keys_time[TOTAL_NUM_KEYS];
+byte keysState[TOTAL_NUM_KEYS];
+unsigned long keysTime[TOTAL_NUM_KEYS];
 
 void setup() {
   Serial.begin(115200);
@@ -35,8 +33,8 @@ void setup() {
   int i;
   //initialize all keys as off and no time
   for (i = 0; i < TOTAL_NUM_KEYS; i++) {
-    keys_state[i] = KEY_OFF;
-    keys_time[i] = 0;
+    keysState[i] = KEY_OFF;
+    keysTime[i] = 0;
   }
   for (byte pin = 0; pin < sizeof(outputPins); pin++) {
     pinMode(outputPins[pin], OUTPUT);
@@ -48,7 +46,7 @@ void setup() {
 }
 
 
-void send_midi_event(byte statusByte, byte keyIndex, unsigned long time) {
+void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
   unsigned long t = time;
   if (t > MAX_TIME_MS)
     t = MAX_TIME_MS;
@@ -69,5 +67,17 @@ void send_midi_event(byte statusByte, byte keyIndex, unsigned long time) {
 }
 
 void loop() {
-  
+  boolean *s = signals;
+  //we wanna go through the input pins
+  for (byte i = 0; i < sizeof(inputPins); i++) {
+    //and for each input pin, try the output pins
+    
+    for (byte j = 0; j < sizeof(outputPins); j++) {
+      //turn on the circuit for that output pin
+      digitalWrite2(outputPin, LOW);
+      *(s++) = !digitalRead2(input_pin);
+      digitalWrite2(outputPin, HIGH);
+    }
+  }
+  println();
 }
