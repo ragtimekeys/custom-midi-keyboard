@@ -1,6 +1,6 @@
 #include <DIO2.h>
 
-#define TOTAL_NUM_KEYS
+#define TOTAL_NUM_KEYS 32
 
 //amount of time to detect velocity
 #define MIN_TIME_MS   3
@@ -27,13 +27,14 @@ byte inputPins[] = {
 byte keysState[TOTAL_NUM_KEYS];
 unsigned long keysTime[TOTAL_NUM_KEYS];
 
+boolean signals[sizeof(inputPins) * sizeof(outputPins)];
 void setup() {
   Serial.begin(115200);
   Serial.println("Listening to MIDI notes...");
   int i;
   //initialize all keys as off and no time
   for (i = 0; i < TOTAL_NUM_KEYS; i++) {
-    keysState[i] = KEY_OFF;
+    keysState[i] = 0;
     keysTime[i] = 0;
   }
   for (byte pin = 0; pin < sizeof(outputPins); pin++) {
@@ -71,13 +72,15 @@ void loop() {
   //we wanna go through the input pins
   for (byte i = 0; i < sizeof(inputPins); i++) {
     //and for each input pin, try the output pins
-    
+    byte inputPin = inputPins[i];
     for (byte j = 0; j < sizeof(outputPins); j++) {
+      byte outputPin = outputPins[j];
       //turn on the circuit for that output pin
       digitalWrite2(outputPin, LOW);
-      *(s++) = !digitalRead2(input_pin);
+      *(s++) = !digitalRead2(inputPin);
       digitalWrite2(outputPin, HIGH);
+      Serial.print(*s);
     }
   }
-  println();
+  Serial.println("---");
 }
