@@ -5,9 +5,9 @@
 #define TOTAL_NUM_KEYS 49
 
 //amount of time to detect velocity
-#define MIN_TIME_MS   3
-#define MAX_TIME_MS   50
-#define MAX_TIME_MS_N (MAX_TIME_MS - MIN_TIME_MS)
+#define MIN_TIME_MS   6
+#define MAX_TIME_MS   90
+#define DIFFERENCE_TIME_MS (MAX_TIME_MS - MIN_TIME_MS)
 
 #define INITIAL_KEY_OFFSET 36
 
@@ -119,6 +119,7 @@ byte keyValuesForIterators[sizeof(inputPins)][sizeof(outputPins)];
 boolean signals[sizeof(inputPins) * sizeof(outputPins)];
 void setup() {
   Serial.begin(115200);
+  //MIDI.begin(MIDI_CHANNEL_OFF);
   Serial.println("Listening to MIDI notes...");
   //initialize all keys as off and no time
   for (byte i = 0; i < TOTAL_NUM_KEYS; i++) {
@@ -148,12 +149,18 @@ void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
   if (t < MIN_TIME_MS)
     t = MIN_TIME_MS;
   t -= MIN_TIME_MS;
-  unsigned long velocity = 127 - (t * 127 / MAX_TIME_MS_N);
+  unsigned long velocity = 127 - (t * 127 / DIFFERENCE_TIME_MS);
   byte vel = (((velocity * velocity) >> 7) * velocity) >> 7;
   byte key = 36 + keyIndex;
   char out[32];
   sprintf(out, "%02X %02X %03d %d", statusByte, key, vel, time);
   Serial.println(out);
+  if (statusByte == 0x90) {
+    //MIDI.sendNoteOn(key, vel, 1);
+  }
+  if (statusByte == 0x80) {
+    //MIDI.sendNoteOff(key, vel, 1);
+  }
   /*
     Serial.write(statusByte);
     Serial.write(key);
@@ -184,14 +191,13 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
       keysState[keyNumber][0] = 1;
     } else {
       //first contact off
-      keysTime[keyNumber] = 0;
       keysState[keyNumber][0] = 0;
       if (keysState[keyNumber][1] == 0) {
         //make the 2nd contact a fake value of 1
         keysState[keyNumber][1] = 1;
         Serial.print("NOTE OFF: ");
-        Serial.print(keyNumber + INITIAL_KEY_OFFSET);
         Serial.println("   ");
+        sendMidiEvent(0x80, keyNumber, currentTime-keysTime[keyNumber]);
       }
     }
   } else {
@@ -204,8 +210,8 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
         //make the 1st contact a fake value of 0
         keysState[keyNumber][0] = 0;
         Serial.print("NOTE ON: ");
-        Serial.print(keyNumber + INITIAL_KEY_OFFSET);
         Serial.println("   ");
+        sendMidiEvent(0x90, keyNumber, currentTime-keysTime[keyNumber]);
       }
     } else {
       //second contact off
