@@ -9,6 +9,8 @@
 #define MAX_TIME_MS   50
 #define MAX_TIME_MS_N (MAX_TIME_MS - MIN_TIME_MS)
 
+#define INITIAL_KEY_OFFSET 36
+
 MIDI_CREATE_DEFAULT_INSTANCE();
 
 byte outputPins[] = {
@@ -57,7 +59,7 @@ byte keysState[TOTAL_NUM_KEYS][2];
 unsigned long keysTime[TOTAL_NUM_KEYS];
 
 byte iteratorValuesForKeys[TOTAL_NUM_KEYS][2][2] = {
-  {{4, 2}, {4, 1}}, //0
+  {{4, 2}, {4, 3}}, //0
   {{5, 2}, {5, 3}}, //1
   {{6, 2}, {6, 3}}, //2
   {{7, 2}, {7, 3}}, //3
@@ -118,9 +120,8 @@ boolean signals[sizeof(inputPins) * sizeof(outputPins)];
 void setup() {
   Serial.begin(115200);
   Serial.println("Listening to MIDI notes...");
-  int i;
   //initialize all keys as off and no time
-  for (i = 0; i < TOTAL_NUM_KEYS; i++) {
+  for (byte i = 0; i < TOTAL_NUM_KEYS; i++) {
     keysState[i][0] = 0;
     keysState[i][1] = 0;
     keysTime[i] = 0;
@@ -160,7 +161,13 @@ void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
   */
 }
 
+//this function gets called EVENT based, in that it only gets called when a pin value changes
+//remember there's two pins for each note, I call them 1st and 2nd contacts
 void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
+  byte keyNumber = keyNumberInQuestion;
+  if (keyNumberInQuestion > 99) {
+    keyNumber = keyNumber - 100;
+  }
   /*
   Serial.print("keyNumber:  ");
   Serial.print(keyNumberInQuestion);
@@ -169,28 +176,41 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
   Serial.println("----");
   */
   unsigned long currentTime = millis();
-  if (keyNumberInQuestion < 100) {
-    //we are talking about the 1st contact
+  if (keyNumberInQuestion > 99) {
+    //FIRST CONTACT
     if (onOrOff == 1) {
-      //we are talking about a note that's probably coming on
-      keysTime[keyNumberInQuestion] = currentTime;
-      keysState[keyNumberInQuestion][0] = 1;
+      //first contact on
+      keysTime[keyNumber] = currentTime;
+      keysState[keyNumber][0] = 1;
     } else {
-      //we are talking about a note that's probably going off
-      keysTime[keyNumberInQuestion] = 0;
-      keysState[keyNumberInQuestion][0] = 0;
+      //first contact off
+      keysTime[keyNumber] = 0;
+      keysState[keyNumber][0] = 0;
+      if (keysState[keyNumber][1] == 0) {
+        //make the 2nd contact a fake value of 1
+        keysState[keyNumber][1] = 1;
+        Serial.print("NOTE OFF: ");
+        Serial.print(keyNumber + INITIAL_KEY_OFFSET);
+        Serial.println("   ");
+      }
     }
   } else {
-    //we are talking about the second contact
+    //SECOND CONTACT
     if (onOrOff == 1) {
-      //we are talking about a note that's probably coming on
-      keysState[keyNumberInQuestion][1] = 1;
+      //second contact on
+      keysState[keyNumber][1] = 1;
       //it's only truly a note on if the 1st contact value isn't still zero
-      if (keysState[keyNumberInQuestion][0] == 1) {
-
+      if (keysState[keyNumber][0] == 1) {
+        //make the 1st contact a fake value of 0
+        keysState[keyNumber][0] = 0;
+        Serial.print("NOTE ON: ");
+        Serial.print(keyNumber + INITIAL_KEY_OFFSET);
+        Serial.println("   ");
       }
     } else {
-      //we are talking about a note that's probably going off
+      //second contact off
+      keysState[keyNumber][1] = 0;
+      keysTime[keyNumber] = currentTime;
     }
   }
 }
