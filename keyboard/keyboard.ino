@@ -1,4 +1,3 @@
-#include <MIDI.h>
 
 #include <DIO2.h>
 
@@ -7,8 +6,8 @@
 #define TOTAL_NUM_KEYS 49
 
 //amount of time to detect velocity
-#define MIN_TIME_MS   6
-#define MAX_TIME_MS   150
+#define MIN_TIME_MS   40
+#define MAX_TIME_MS   80
 #define DIFFERENCE_TIME_MS (MAX_TIME_MS - MIN_TIME_MS)
 
 
@@ -124,6 +123,7 @@ void setup() {
   
   //MIDI.begin();
   Serial.begin(115200);
+  Serial1.begin(31250);
   //Serial.println("Listening to MIDI notes...");
   //initialize all keys as off and no time
   for (byte i = 0; i < TOTAL_NUM_KEYS; i++) {
@@ -171,9 +171,9 @@ void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
   }
   */
   
-    Serial.write(statusByte);
-    Serial.write(key);
-    Serial.write(vel);
+    Serial1.write(statusByte);
+    Serial1.write(key);
+    Serial1.write(vel);
   
 }
 
