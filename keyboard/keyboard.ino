@@ -2,16 +2,19 @@
 
 #include <DIO2.h>
 
+#include <math.h>
+
 #define TOTAL_NUM_KEYS 49
 
 //amount of time to detect velocity
 #define MIN_TIME_MS   6
-#define MAX_TIME_MS   90
+#define MAX_TIME_MS   150
 #define DIFFERENCE_TIME_MS (MAX_TIME_MS - MIN_TIME_MS)
+
 
 #define INITIAL_KEY_OFFSET 36
 
-MIDI_CREATE_DEFAULT_INSTANCE();
+//MIDI_CREATE_DEFAULT_INSTANCE();
 
 byte outputPins[] = {
   34,
@@ -118,9 +121,10 @@ byte keyValuesForIterators[sizeof(inputPins)][sizeof(outputPins)];
 
 boolean signals[sizeof(inputPins) * sizeof(outputPins)];
 void setup() {
+  
+  //MIDI.begin();
   Serial.begin(115200);
-  //MIDI.begin(MIDI_CHANNEL_OFF);
-  Serial.println("Listening to MIDI notes...");
+  //Serial.println("Listening to MIDI notes...");
   //initialize all keys as off and no time
   for (byte i = 0; i < TOTAL_NUM_KEYS; i++) {
     keysState[i][0] = 0;
@@ -150,22 +154,27 @@ void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
     t = MIN_TIME_MS;
   t -= MIN_TIME_MS;
   unsigned long velocity = 127 - (t * 127 / DIFFERENCE_TIME_MS);
-  byte vel = (((velocity * velocity) >> 7) * velocity) >> 7;
+  //byte vel = (((velocity * velocity) >> 7) * velocity) >> 7;
+  byte vel = round(velocity);
   byte key = 36 + keyIndex;
   char out[32];
+  /*
   sprintf(out, "%02X %02X %03d %d", statusByte, key, vel, time);
   Serial.println(out);
+  */
+  /*
   if (statusByte == 0x90) {
-    //MIDI.sendNoteOn(key, vel, 1);
+    MIDI.sendNoteOn(key, vel, 1);
   }
   if (statusByte == 0x80) {
-    //MIDI.sendNoteOff(key, vel, 1);
+    MIDI.sendNoteOff(key, vel, 1);
   }
-  /*
+  */
+  
     Serial.write(statusByte);
     Serial.write(key);
     Serial.write(vel);
-  */
+  
 }
 
 //this function gets called EVENT based, in that it only gets called when a pin value changes
@@ -195,8 +204,8 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
       if (keysState[keyNumber][1] == 0) {
         //make the 2nd contact a fake value of 1
         keysState[keyNumber][1] = 1;
-        Serial.print("NOTE OFF: ");
-        Serial.println("   ");
+        //Serial.print("NOTE OFF: ");
+        //Serial.println("   ");
         sendMidiEvent(0x80, keyNumber, currentTime-keysTime[keyNumber]);
       }
     }
@@ -209,8 +218,8 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
       if (keysState[keyNumber][0] == 1) {
         //make the 1st contact a fake value of 0
         keysState[keyNumber][0] = 0;
-        Serial.print("NOTE ON: ");
-        Serial.println("   ");
+        //Serial.print("NOTE ON: ");
+        //Serial.println("   ");
         sendMidiEvent(0x90, keyNumber, currentTime-keysTime[keyNumber]);
       }
     } else {
