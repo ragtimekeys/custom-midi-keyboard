@@ -1,4 +1,3 @@
-
 #include <DIO2.h>
 
 #include <math.h>
@@ -13,7 +12,6 @@
 
 #define INITIAL_KEY_OFFSET 36
 
-//MIDI_CREATE_DEFAULT_INSTANCE();
 
 byte outputPins[] = {
   34,
@@ -124,7 +122,7 @@ void setup() {
   //MIDI.begin();
   Serial.begin(115200);
   Serial1.begin(31250);
-  //Serial.println("Listening to MIDI notes...");
+  Serial.println("Listening to MIDI notes...");
   //initialize all keys as off and no time
   for (byte i = 0; i < TOTAL_NUM_KEYS; i++) {
     keysState[i][0] = 0;
@@ -204,7 +202,7 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
       if (keysState[keyNumber][1] == 0) {
         //make the 2nd contact a fake value of 1
         keysState[keyNumber][1] = 1;
-        //Serial.print("NOTE OFF: ");
+        Serial.print("NOTE OFF: ");
         //Serial.println("   ");
         sendMidiEvent(0x80, keyNumber, currentTime-keysTime[keyNumber]);
       }
@@ -218,7 +216,7 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
       if (keysState[keyNumber][0] == 1) {
         //make the 1st contact a fake value of 0
         keysState[keyNumber][0] = 0;
-        //Serial.print("NOTE ON: ");
+        Serial.print("NOTE ON: ");
         //Serial.println("   ");
         sendMidiEvent(0x90, keyNumber, currentTime-keysTime[keyNumber]);
       }
