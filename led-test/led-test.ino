@@ -10,15 +10,26 @@ void setup() {
 
 void loop() {
 
+/*
   if (digitalRead(BUTTON) == LOW) {
-    for (int i = 0; i<128; i++) {
+    for (int i = 0; i < 128; i++) {
       Serial.println(i);
       analogWrite(LED, i);
-    delay(2);
+      //delay(1);
     }
     analogWrite(LED, LOW);
-    delay(200);
+    delay(1);
   } else {
     analogWrite(LED, LOW);
   }
+  */
+
+if (digitalRead(BUTTON) == HIGH) {
+  analogWrite(LED, 127);
+} else {
+
+  analogWrite(LED,0);
+}
+
+  
 }

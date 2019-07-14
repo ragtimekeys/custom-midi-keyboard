@@ -5,8 +5,8 @@
 #define TOTAL_NUM_KEYS 49
 
 //amount of time to detect velocity
-#define MIN_TIME_MS   40
-#define MAX_TIME_MS   80
+#define MIN_TIME_MS  2
+#define MAX_TIME_MS  100
 #define DIFFERENCE_TIME_MS (MAX_TIME_MS - MIN_TIME_MS)
 
 
@@ -118,7 +118,7 @@ byte keyValuesForIterators[sizeof(inputPins)][sizeof(outputPins)];
 
 boolean signals[sizeof(inputPins) * sizeof(outputPins)];
 void setup() {
-  
+
   //MIDI.begin();
   Serial.begin(115200);
   Serial1.begin(31250);
@@ -140,9 +140,15 @@ void setup() {
     keyValuesForIterators[iteratorValuesForKeys[i][0][0]][iteratorValuesForKeys[i][0][1]] = i;
     keyValuesForIterators[iteratorValuesForKeys[i][1][0]][iteratorValuesForKeys[i][1][1]] = i + 100;
   }
-  keyValuesForIterators[sizeof(outputPins)-1][sizeof(inputPins)-1] = 200;
+  keyValuesForIterators[sizeof(outputPins) - 1][sizeof(inputPins) - 1] = 200;
 }
 
+#include <math.h>
+#define SIGMOID(x) (1 / (1 + exp(-(double)x)))
+/*
+** transform x in [x_min, x_max] to new value in [a, b]
+*/
+#define TRANSFORM(x, x_min, x_max, a, b) (((b)-(a))*((x)-(x_min))/((x_max)-(x_min)))+(a)
 
 void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
   unsigned long t = time;
@@ -150,29 +156,39 @@ void sendMidiEvent(byte statusByte, byte keyIndex, unsigned long time) {
     t = MAX_TIME_MS;
   if (t < MIN_TIME_MS)
     t = MIN_TIME_MS;
-  t -= MIN_TIME_MS;
-  unsigned long velocity = 127 - (t * 127 / DIFFERENCE_TIME_MS);
+
+  //t -= MIN_TIME_MS;
+
+  //unsigned long velocity = 127 - (t * 127 / DIFFERENCE_TIME_MS);
+
   //byte vel = (((velocity * velocity) >> 7) * velocity) >> 7;
-  byte vel = round(velocity);
+  //byte vel = round(velocity);
+
+  double tt = TRANSFORM((double)t, (double)MIN_TIME_MS, (double)MAX_TIME_MS, 5.0, -10.0);
+  double velocity = 127.0 * SIGMOID(tt);
+  //Serial.print(tt);
+
+
+  byte vel = (byte)velocity;
   byte key = 36 + keyIndex;
   char out[32];
   /*
-  sprintf(out, "%02X %02X %03d %d", statusByte, key, vel, time);
-  Serial.println(out);
+    sprintf(out, "%02X %02X %03d %d", statusByte, key, vel, time);
+    Serial.println(out);
   */
   /*
-  if (statusByte == 0x90) {
+    if (statusByte == 0x90) {
     MIDI.sendNoteOn(key, vel, 1);
-  }
-  if (statusByte == 0x80) {
+    }
+    if (statusByte == 0x80) {
     MIDI.sendNoteOff(key, vel, 1);
-  }
+    }
   */
-  
-    Serial1.write(statusByte);
-    Serial1.write(key);
-    Serial1.write(vel);
-  
+
+  Serial1.write(statusByte);
+  Serial1.write(key);
+  Serial1.write(vel);
+
 }
 
 //this function gets called EVENT based, in that it only gets called when a pin value changes
@@ -183,11 +199,11 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
     keyNumber = keyNumber - 100;
   }
   /*
-  Serial.print("keyNumber:  ");
-  Serial.print(keyNumberInQuestion);
-  Serial.print(" onOrOff: ");
-  Serial.print(onOrOff);
-  Serial.println("----");
+    Serial.print("keyNumber:  ");
+    Serial.print(keyNumberInQuestion);
+    Serial.print(" onOrOff: ");
+    Serial.print(onOrOff);
+    Serial.println("----");
   */
   unsigned long currentTime = millis();
   if (keyNumberInQuestion > 99) {
@@ -204,7 +220,7 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
         keysState[keyNumber][1] = 1;
         Serial.print("NOTE OFF: ");
         //Serial.println("   ");
-        sendMidiEvent(0x80, keyNumber, currentTime-keysTime[keyNumber]);
+        sendMidiEvent(0x80, keyNumber, currentTime - keysTime[keyNumber]);
       }
     }
   } else {
@@ -218,7 +234,7 @@ void processPinValueChange(byte keyNumberInQuestion, bool onOrOff) {
         keysState[keyNumber][0] = 0;
         Serial.print("NOTE ON: ");
         //Serial.println("   ");
-        sendMidiEvent(0x90, keyNumber, currentTime-keysTime[keyNumber]);
+        sendMidiEvent(0x90, keyNumber, currentTime - keysTime[keyNumber]);
       }
     } else {
       //second contact off
